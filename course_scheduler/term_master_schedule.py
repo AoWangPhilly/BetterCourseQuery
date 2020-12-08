@@ -54,10 +54,16 @@ def get_majors(quarter: str, college: str) -> List[str]:
     regex_group = [major.strip() for major in regex_group]
     return regex_group
 
+def get_major_courses(quarter: str, college: str, major: str) -> pd.DataFrame:
+    college_url = get_college(quarter, college)
+    college_page = requests.get(college_url)
+    soup = BeautifulSoup(college_page.content, 'html.parser')
+
+    courses_url= TMS_URL + soup.find('a', text=re.compile(major))['href']
+    course_page = requests.get(courses_url)
+
+    return pd.read_html(course_page.content)[4]
+
 if __name__ == '__main__':
-    # colleges_url = enter_quarter_page('FALL')
-    # colleges_page = requests.get(colleges_url)
-    # html_tables = pd.read_html(colleges_page.content)
-    # table_str = html_tables[0]
-    c = get_majors('FALL', 'Col of Computing & Informatics')
+    c = get_major_courses('FALL', 'Col of Computing & Informatics', 'CS')
     print(c)
