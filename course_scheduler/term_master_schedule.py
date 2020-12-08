@@ -83,11 +83,19 @@ class TMS():
 
         courses_url= TMS.URL + soup.find('a', text=re.compile(major))['href']
         course_page = requests.get(courses_url)
-
-        return pd.read_html(course_page.content)[4]
+        majors_df = pd.read_html(course_page.content)[4]
+        
+        majors_df.columns = majors_df.loc[0]
+        majors_df.drop([0, len(majors_df)-1], inplace=True)
+        majors_df.reset_index(drop=True, inplace=True)
+        return majors_df
 
 
 if __name__ == '__main__':
-    tms = TMS(quarter='FALL', college='Col of Computing & Informatics')
-    c = tms.create_major_to_college_map()
-    pprint.pprint(c)
+    # tms = TMS(quarter='FALL', college='Col of Computing & Informatics')
+    # c = tms.create_major_to_college_map()
+    # pprint.pprint(c)
+
+    with open('college_course_mapping.p', 'rb') as fp:
+        data = pickle.load(fp)
+        pprint.pprint(type(data))
