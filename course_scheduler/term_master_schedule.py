@@ -4,7 +4,8 @@ import pandas as pd
 import datetime
 import re
 from typing import Dict, List
-import json
+import pickle
+import pprint
 
 class TMS():
     COLLEGES = ['Antoinette Westphal COMAD',
@@ -40,7 +41,7 @@ class TMS():
     
     def get_college(self) -> str:
         return self.college
-        
+
     # Change later about when quarter become available
     # Change year 20-21 to current-yr -> the next
     def get_quarter(self) -> str:
@@ -69,11 +70,12 @@ class TMS():
         regex_group = [major.strip() for major in regex_group]
         return regex_group
 
-    def create_major_to_college_map(self):
-        mapping = {}
-        for college in TMS.COLLEGES:
-
-
+    def create_major_to_college_map(self) -> Dict[str, List[str]]:
+        mapping = {college: TMS(self.quarter, college).get_majors() for college in TMS.COLLEGES}
+        with open('college_course_mapping.p', 'wb') as fp:
+            pickle.dump(mapping, fp, protocol=pickle.HIGHEST_PROTOCOL)
+        return mapping
+        
     def get_major_courses(self, major: str) -> pd.DataFrame:
         college_url = self.get_college()
         college_page = requests.get(college_url)
@@ -87,5 +89,5 @@ class TMS():
 
 if __name__ == '__main__':
     tms = TMS(quarter='FALL', college='Col of Computing & Informatics')
-    c = tms.get_major_courses('CS')
-    print(c)
+    c = tms.create_major_to_college_map()
+    pprint.pprint(c)
