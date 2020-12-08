@@ -4,6 +4,7 @@ import pandas as pd
 import datetime
 import re
 from typing import Dict, List
+import json
 
 class TMS():
     COLLEGES = ['Antoinette Westphal COMAD',
@@ -28,6 +29,18 @@ class TMS():
         self.quarter = quarter.lower().title()
         self.college = college
 
+    def set_quarter(self, quarter: str) -> None:
+        self.quarter = quarter
+    
+    def get_quarter(self) -> str:
+        return self.quarter
+    
+    def set_college(self, college: str) -> None:
+        self.college = college
+    
+    def get_college(self) -> str:
+        return self.college
+        
     # Change later about when quarter become available
     # Change year 20-21 to current-yr -> the next
     def get_quarter(self) -> str:
@@ -55,6 +68,11 @@ class TMS():
         regex_group = re.findall(r'([a-zA-Z\s&-]+\s\(\w+\))', table_str)
         regex_group = [major.strip() for major in regex_group]
         return regex_group
+
+    def create_major_to_college_map(self):
+        mapping = {}
+        for college in TMS.COLLEGES:
+
 
     def get_major_courses(self, major: str) -> pd.DataFrame:
         college_url = self.get_college()
