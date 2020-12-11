@@ -91,6 +91,20 @@ class TMS():
         majors_df.columns = majors_df.loc[0]
         majors_df.drop([0, len(majors_df)-1], inplace=True)
         majors_df.reset_index(drop=True, inplace=True)
+        
+        soup = BeautifulSoup(course_page.content, 'html.parser')
+        p_titles = soup.findAll('p')
+        p_titles = pd.Series([p.get('title') for p in p_titles if p.get('title')])
+
+        def grab_available_seats(row):
+            seats_search = re.search(r'Max enroll=(\d+); Enroll=(\d+)', row)
+            if seats_search:
+                return int(seats_search.group(1)) - int(seats_search.group(2))
+            return 0
+        
+        majors_df['No. of Available Seats'] = p_titles.apply(grab_available_seats)
+#         print(grab_available_seats('Max enroll=38; Enroll=32'))
+#         print(p_titles)
         return majors_df
 
 
