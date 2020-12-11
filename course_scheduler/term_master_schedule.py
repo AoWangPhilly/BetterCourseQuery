@@ -6,7 +6,9 @@ import re
 from typing import Dict, List
 import pickle
 import pprint
-
+import os
+from pathlib import Path
+import multiprocessing
 
 class TMS():
     URL = 'https://termmasterschedule.drexel.edu/'
