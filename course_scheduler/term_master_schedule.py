@@ -74,11 +74,25 @@ class TMS():
         for college in colleges:
             tms.set_college(college)
             mapping[college] = tms.get_majors()
-            
-#         with open('college_course_mapping.p', 'wb') as fp:
-#             pickle.dump(mapping, fp, protocol=pickle.HIGHEST_PROTOCOL)
-        return mapping
         
+        return mapping
+    
+    def get_major_info(self, major: str, n: str):
+        
+        query_url = f'http://catalog.drexel.edu/search/?P={major}%20{n}'
+        page = requests.get(query_url)
+        soup = BeautifulSoup(page.content, 'html.parser')
+        cred = re.search(r'(\d.\d) Credits$', soup.find('h2').text).group(1)
+
+        desc_block = soup.find('div', {'class':'courseblock'}).text
+        course_info = desc_block.split('\n')
+        course_info = [info for info in course_info if info]
+
+        course_info_dict = {'Credits': cred, 'Desc': course_info[0]}
+        for i in course_info[1:]:
+            course_info_dict[i[:i.find(':')]] = i[i.find(':') + 2:]
+        return course_info_dict
+
     def get_major_courses(self, major: str) -> pd.DataFrame:
         college_url = self.get_college_url()
         college_page = requests.get(college_url)
@@ -103,17 +117,14 @@ class TMS():
             return 0
         
         majors_df['No. of Available Seats'] = p_titles.apply(grab_available_seats)
-#         print(grab_available_seats('Max enroll=38; Enroll=32'))
-#         print(p_titles)
         return majors_df
 
 
+
 if __name__ == '__main__':
-    # tms = TMS(quarter='FALL', college='Col of Computing & Informatics')
-    # c = tms.get_major_courses('CS')
-    # gui = show(c)
-    df = pd.DataFrame(([[1, 2, 3], [4, 5, 6], [7, 8, 9]]), columns=['a', 'b', 'c'])
-    show(df)
+    tms = TMS(quarter='FALL', college='Col of Computing & Informatics')
+    c = tms.get_major_info(major='CS', n='171')
+    pprint.pprint(c)
     # with open('college_course_mapping.p', 'rb') as fp:
     #     data = pickle.load(fp)
     #     pprint.pprint(type(data))
