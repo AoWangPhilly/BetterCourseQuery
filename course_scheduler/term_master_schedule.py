@@ -1,16 +1,23 @@
+'''
+
+'''
+
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd
 import datetime
 import re
 from typing import Dict, List
-import pickle
 import pprint
 import os
 from pathlib import Path
 import multiprocessing
 
 class TMS():
+    '''
+
+
+    '''
     URL = 'https://termmasterschedule.drexel.edu/'
 
     def __init__(self, quarter: str = None, college: str = None) -> None:
@@ -34,6 +41,9 @@ class TMS():
     # Change later about when quarter become available
     # Change year 20-21 to current-yr -> the next
     def get_quarter_url(self) -> str:
+        '''
+
+        '''
         # Make quarter string Titled
         TMS_PAGE = requests.get(TMS.URL)
 
@@ -43,6 +53,9 @@ class TMS():
         return TMS.URL + soup.find('a', href=True, text=f'{self.get_quarter()} Quarter 20-21')['href']
 
     def get_available_college(self):
+        '''
+
+        '''
         colleges_url = self.get_quarter_url()
         colleges_page = requests.get(colleges_url)
         soup = BeautifulSoup(colleges_page.content, 'html.parser')
@@ -51,6 +64,9 @@ class TMS():
         return available_colleges
     
     def get_college_url(self) -> str:
+        '''
+
+        '''
         colleges_url = self.get_quarter_url()
         colleges_page = requests.get(colleges_url)
         soup = BeautifulSoup(colleges_page.content, 'html.parser')
@@ -60,6 +76,9 @@ class TMS():
         return TMS.URL + college_page_url
 
     def get_majors(self) -> List[str]:
+        '''
+
+        '''
         college_url = self.get_college_url()
         html_tables = pd.read_html(college_url)
         table_str = html_tables[6].loc[1][0]
@@ -69,6 +88,9 @@ class TMS():
         return regex_group
 
     def create_major_to_college_map(self) -> Dict[str, List[str]]:
+        '''
+
+        '''
         tms, mapping = TMS(quarter=self.quarter), {}
         colleges = self.get_available_college()
         for college in colleges:
@@ -78,11 +100,14 @@ class TMS():
         return mapping
     
     def get_major_info(self, major: str, n: str):
-        
+        '''
+
+        '''
         query_url = f'http://catalog.drexel.edu/search/?P={major}%20{n}'
         page = requests.get(query_url)
         soup = BeautifulSoup(page.content, 'html.parser')
-        cred = re.search(r'(\d.\d) Credits$', soup.find('h2').text).group(1)
+        cred_find = re.search(r'(\d+.\d)-?(\d+.\d)? Credits?$', soup.find('h2').text)
+        cred = cred_find.group(1)
 
         desc_block = soup.find('div', {'class':'courseblock'}).text
         course_info = desc_block.split('\n')
@@ -94,6 +119,10 @@ class TMS():
         return course_info_dict
 
     def get_major_courses(self, major: str) -> pd.DataFrame:
+        '''
+
+
+        '''
         college_url = self.get_college_url()
         college_page = requests.get(college_url)
         soup = BeautifulSoup(college_page.content, 'html.parser')
@@ -115,16 +144,18 @@ class TMS():
             if seats_search:
                 return int(seats_search.group(1)) - int(seats_search.group(2))
             return 0
+        df = pd.DataFrame()
         
         majors_df['No. of Available Seats'] = p_titles.apply(grab_available_seats)
+        majors_df = majors_df.join(majors_df['Course No.'].apply(lambda x: pd.Series(self.get_major_info(major, x))))
         return majors_df
 
-
-
 if __name__ == '__main__':
-    tms = TMS(quarter='FALL', college='Col of Computing & Informatics')
-    c = tms.get_major_info(major='CS', n='171')
-    pprint.pprint(c)
+    df = pd.read_csv('test.csv')
+    print(df[df['Course No.'] == '265'])
+    # tms = TMS(quarter='FALL', college='Col of Computing & Informatics')
+    # c = tms.get_major_courses(major='CS')
+    # c.to_csv('test.csv')
     # with open('college_course_mapping.p', 'rb') as fp:
     #     data = pickle.load(fp)
     #     pprint.pprint(type(data))
