@@ -186,18 +186,8 @@ class TMS():
 
 
 if __name__ == '__main__':
-    # df = pd.read_csv('test.csv')
-    # print(df[df['Course No.'] == '265'])
-    # # tms = TMS(quarter='FALL', college='Col of Computing & Informatics')
-    # # c = tms.get_major_courses(major='CS')
-    # # c.to_csv('test.csv')
-    # # with open('college_course_mapping.p', 'rb') as fp:
-    # #     data = pickle.load(fp)
-    # #     pprint.pprint(type(data))
-    # 42.6 s ± 2.67 s per loop (mean ± std. dev. of 7 runs, 1 loop each)
-
     tms = TMS()
-    for q in ['SPRING', 'SUMMER']:
+    for q in ['FALL', 'WINTER', 'SPRING', 'SUMMER']:
         tms.set_quarter(q)
         mapping = tms.create_major_to_college_map()
         for c in mapping:
@@ -208,18 +198,3 @@ if __name__ == '__main__':
                 Path(folder).mkdir(parents=True, exist_ok=True)
                 tms.get_major_courses(m).to_csv(
                     os.path.join(folder, m+'.csv'), index=False)
-
-    # tms = TMS(quarter='FALL', college='Arts and Sciences') 
-    # college_url = tms.get_college_url()
-    # college_page = requests.get(college_url)
-    # soup = BeautifulSoup(college_page.content, 'html.parser')
-
-    # for major in tms.get_majors():
-    #     courses_url = tms.URL + soup.find('a', text=re.compile(major))['href']
-    #     print(major, courses_url)
-
-    tms = TMS(quarter='WINTER', college='College of Engineering')
-    print(tms.get_major_courses(major='MHT'))
-
-    # tms = TMS(quarter='FALL', college='Col of Computing & Informatics')
-    # tms.get_major_courses('CS').to_csv('new_test.csv', index=False)
