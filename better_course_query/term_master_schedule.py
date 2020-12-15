@@ -228,6 +228,7 @@ if __name__ == '__main__':
             for m in mapping[c]:
                 print(f'{q} {c} {m}')
                 folder = os.path.join('DREXEL', q, c)
-                Path(folder).mkdir(parents=True, exist_ok=True)
+                if not os.path.exists(folder): os.makedirs(folder)
+                # Path(folder).mkdir(parents=True, exist_ok=True)
                 tms.get_major_courses(m).to_csv(
                     os.path.join(folder, m+'.csv'), index=False)
