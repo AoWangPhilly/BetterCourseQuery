@@ -5,3 +5,7 @@ Goals:
 1. Get all courses from specific quarter
 2. Organize by quarter -> school -> major -> course
 3. Able to get courses by course name, professor, or credits
+
+
+1. Ask which quarter, list
+2. Find course by 
