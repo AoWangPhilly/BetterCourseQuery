@@ -79,4 +79,19 @@ questions = [
 ]
 
 answers = prompt(questions)
-pprint(answers)  # use the answers as input for your app
+sub_code, course_no = answers['Subject Code & Course No.'].split(' ')
+
+base_folder = os.path.join('DREXEL', answers['quarter'])
+if answers.get('Subject Code & Course No.', None):
+    colleges = glob.glob(os.path.join(base_folder, '*/'))
+    for college in colleges:
+        majors = glob.glob(os.path.join(college, '*.csv'))
+        for major in majors:
+            df = pd.read_csv(major)
+            if sub_code in df['Subject Code'].values:
+                if course_no in df['Course No.'].values:
+                    print(df[(df['Subject Code'] == sub_code) & (df['Course No.'] == course_no)])
+                else:
+                    continue
+            else:
+                continue
