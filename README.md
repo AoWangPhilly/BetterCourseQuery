@@ -1,5 +1,5 @@
-# course-scheduler
-An application that aids you finding your perfect course schedule: from finding that 1 credit class to reach you perfect 20 credit maximum or 3 credit class with no prereqs
+# BetterClassQuery
+An application that helps you find the courses you're looking for! Need a 1-credit class to add up to that perfect 20-credit max? Or need that easy no-prereq class to fill up your gened's. No worries, the BetterClassQuery is there to help!
 
 Goals:
 1. Get all courses from specific quarter
