@@ -6,15 +6,17 @@
 from __future__ import print_function, unicode_literals
 import pandas as pd
 import numpy as np
-import os
-import glob
+from os.path import join
+from glob import glob
 from pprint import pprint
 from PyInquirer import prompt, print_json
-
+from tabulate import tabulate
+import textwrap
 
 class TMSQuery():
-    def __init__(self):
-        pass
+    def __init__(self, answers):
+        self.answers = answers
+        self.base_folder = join('DREXEL', answers['quarter'])
 
     def get_professor(self):
         pass
@@ -25,14 +27,37 @@ class TMSQuery():
     def get_no_prereqs(self):
         pass
 
-    def get_course(self):
-        pass
+    def get_course(self) -> None:
+        pd.set_option('display.max_columns', None)
+
+        sub_code, course_no = self.answers['Subject Code & Course No.'].split(
+            ' ')
+
+        if self.answers.get('Subject Code & Course No.', None):
+            colleges = glob(join(self.base_folder, '*/'))
+
+        for college in colleges:
+            majors = glob(join(college, '*.csv'))
+            for major in majors:
+                df = pd.read_csv(major)
+                df[['Subject Code', 'Course No.']] = df[[
+                    'Subject Code', 'Course No.']].astype(str)
+                if df['Subject Code'].str.contains(sub_code).any() and df['Course No.'].str.contains(course_no).any():
+                    self.print_results(
+                        df[(df['Subject Code'] == sub_code) & (df['Course No.'] == course_no)])
+                    return
 
     def get_crn(self):
         pass
 
-    def print_results(self):
-        pass
+    def print_results(self, df: pd.DataFrame) -> None:
+        initial_course = df.iloc[0]
+        print('{} {}: {}\nDescription: {}\nPrereq: {}\nRestrictions: {}\nCoreqs: {}\n'.format(
+              initial_course['Subject Code'], initial_course['Course No.'], initial_course['Course Title'], textwrap.fill(initial_course['Course Desc.'], 100),
+              initial_course['Prerequisites'], initial_course['Restrictions'], initial_course['Corequisites']))
+        desired_cols = ['Instr Type', 'Instr Method', 'Sec', 'CRN', 'Days / Time',
+                        'Instructor', 'Credits', 'No. of Avail. Seats', 'Section Comments']
+        print(tabulate(df[desired_cols], showindex=False, headers='keys', tablefmt='psql'))
 
 
 if __name__ == '__main__':
@@ -59,42 +84,9 @@ if __name__ == '__main__':
             'name': 'Subject Code & Course No.',
             'message': 'Enter Subject Code & Course No.: i.e. CS 265',
             'when': lambda answers: answers['find_by'] == 'Subject Code & Course No.'
-        },
-        {
-            'type': 'input',
-            'name': 'CRN #',
-            'message': 'Enter CRN #: ',
-            'when': lambda answers: answers['find_by'] == 'CRN #'
-        },
-        {
-            'type': 'input',
-            'name': 'Professor',
-            'message': 'Enter Professor\'s name',
-            'when': lambda answers: answers['find_by'] == 'Professor'
-        },
-        {
-            'type': 'input',
-            'name': 'No. of Credits',
-            'message': 'Enter No. of Credits',
-            'when': lambda answers: answers['find_by'] == 'No. of Credits '
         }
     ]
 
     answers = prompt(questions)
-    sub_code, course_no = answers['Subject Code & Course No.'].split(' ')
-
-    base_folder = os.path.join('DREXEL', answers['quarter'])
-    if answers.get('Subject Code & Course No.', None):
-        colleges = glob.glob(os.path.join(base_folder, '*/'))
-        for college in colleges:
-            majors = glob.glob(os.path.join(college, '*.csv'))
-            for major in majors:
-                df = pd.read_csv(major)
-                if sub_code in df['Subject Code'].values:
-                    if course_no in df['Course No.'].values:
-                        print(df[(df['Subject Code'] == sub_code)
-                                 & (df['Course No.'] == course_no)])
-                    else:
-                        continue
-                else:
-                    continue
+    query = TMSQuery(answers=answers)
+    query.get_course()
