@@ -26,10 +26,14 @@ class color:
     UNDERLINE = '\033[4m'
     END = '\033[0m'
 
+
 def bolden_blue(title: str) -> str:
     return color.BOLD + color.BLUE + color.UNDERLINE + title + color.END
+
+
 def indent(text, amount, ch=' '):
     return "\n" + textwrap.indent(text, amount * ch)
+
 
 class TMSQuery():
     def __init__(self, answers):
@@ -50,9 +54,7 @@ class TMSQuery():
 
         sub_code, course_no = self.answers['Subject Code & Course No.'].split(
             ' ')
-
-        if self.answers.get('Subject Code & Course No.', None):
-            colleges = glob(join(self.base_folder, '*/'))
+        colleges = glob(join(self.base_folder, '*/'))
 
         for college in colleges:
             majors = glob(join(college, '*.csv'))
@@ -66,21 +68,33 @@ class TMSQuery():
                     return
 
     def get_crn(self):
-        pass
+        crn = self.answers['CRN']
+        colleges = glob(join(self.base_folder, '*/'))
+        for college in colleges:
+            majors = glob(join(college, '*.csv'))
+            for major in majors:
+                df = pd.read_csv(major)
+                df['CRN'] = df['CRN'].astype(str)
+                if df['CRN'].str.contains(crn).any():
+                    self.print_results(df[df['CRN'] == crn])
+                    return
 
     def print_results(self, df: pd.DataFrame) -> None:
         initial_course = df.iloc[0].replace({np.nan: 'None'})
-        title = indent(f"{initial_course['Subject Code']} {initial_course['Course No.']} - {initial_course['Course Title']}", 5)
-        desc = indent(textwrap.fill(initial_course['Course Desc.'], width=100), 5)
-        prereq = indent(initial_course['Prerequisites'], 5)
-        restrict = indent(initial_course['Restrictions'], 5)
-        coreq = indent(initial_course['Corequisites'], 5)
+        title = indent(
+            f"{initial_course['Subject Code']} {initial_course['Course No.']} - {initial_course['Course Title']}", 4)
+        desc = indent(textwrap.fill(
+            initial_course['Course Desc.'], width=100), 4)
+        prereq = indent(initial_course['Prerequisites'], 4)
+        restrict = indent(initial_course['Restrictions'], 4)
+        coreq = indent(initial_course['Corequisites'], 4)
         print(f"{bolden_blue('Course Title:')}{title}\n\n{bolden_blue('Description:')}{desc}\n\n{bolden_blue('Prerequisites:')}{prereq}\n\n{bolden_blue('Restrictions:')}{restrict}\n\n{bolden_blue('Corequisites:')}{coreq}\n")
 
         desired_cols = ['Instr Type', 'Instr Method', 'Sec', 'CRN', 'Days / Time',
                         'Instructor', 'Credits', 'No. of Avail. Seats', 'Section Comments']
         print(tabulate(df[desired_cols], showindex=False,
                        headers='keys', tablefmt='fancy_grid'))
+
 
 if __name__ == '__main__':
     # fall = os.path.join('DREXEL', 'FALL', 'Col of Computing & Informatics', 'CS.csv')
@@ -106,13 +120,21 @@ if __name__ == '__main__':
             'name': 'Subject Code & Course No.',
             'message': 'Enter Subject Code & Course No.: i.e. CS 265',
             'when': lambda answers: answers['find_by'] == 'Subject Code & Course No.'
+        },
+        {
+            'type': 'input',
+            'name': 'CRN',
+            'message': 'Enter Course CRN #',
+            'when': lambda answers: answers['find_by'] == 'CRN #'
         }
     ]
 
     answers = prompt(questions)
     query = TMSQuery(answers=answers)
     print()
-    query.get_course()
-
+    if 'Subject Code & Course No.' in answers:
+        query.get_course()
+    elif 'CRN' in answers:
+        query.get_crn()
 
     # print(bolden_blue('Course Name:') + indent('CS 265 - Advanced Programming Tools and Techniques', 5))
