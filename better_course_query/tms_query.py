@@ -13,6 +13,24 @@ from PyInquirer import prompt, print_json
 from tabulate import tabulate
 import textwrap
 
+
+class color:
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    DARKCYAN = '\033[36m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
+
+def bolden_blue(title: str) -> str:
+    return color.BOLD + color.BLUE + color.UNDERLINE + title + color.END
+def indent(text, amount, ch=' '):
+    return "\n" + textwrap.indent(text, amount * ch)
+
 class TMSQuery():
     def __init__(self, answers):
         self.answers = answers
@@ -51,14 +69,18 @@ class TMSQuery():
         pass
 
     def print_results(self, df: pd.DataFrame) -> None:
-        initial_course = df.iloc[0]
-        print('{} {}: {}\nDescription: {}\nPrereq: {}\nRestrictions: {}\nCoreqs: {}\n'.format(
-              initial_course['Subject Code'], initial_course['Course No.'], initial_course['Course Title'], textwrap.fill(initial_course['Course Desc.'], 100),
-              initial_course['Prerequisites'], initial_course['Restrictions'], initial_course['Corequisites']))
+        initial_course = df.iloc[0].replace({np.nan: 'None'})
+        title = indent(f"{initial_course['Subject Code']} {initial_course['Course No.']} - {initial_course['Course Title']}", 5)
+        desc = indent(textwrap.fill(initial_course['Course Desc.'], width=100), 5)
+        prereq = indent(initial_course['Prerequisites'], 5)
+        restrict = indent(initial_course['Restrictions'], 5)
+        coreq = indent(initial_course['Corequisites'], 5)
+        print(f"{bolden_blue('Course Title:')}{title}\n\n{bolden_blue('Description:')}{desc}\n\n{bolden_blue('Prerequisites:')}{prereq}\n\n{bolden_blue('Restrictions:')}{restrict}\n\n{bolden_blue('Corequisites:')}{coreq}\n")
+
         desired_cols = ['Instr Type', 'Instr Method', 'Sec', 'CRN', 'Days / Time',
                         'Instructor', 'Credits', 'No. of Avail. Seats', 'Section Comments']
-        print(tabulate(df[desired_cols], showindex=False, headers='keys', tablefmt='psql'))
-
+        print(tabulate(df[desired_cols], showindex=False,
+                       headers='keys', tablefmt='fancy_grid'))
 
 if __name__ == '__main__':
     # fall = os.path.join('DREXEL', 'FALL', 'Col of Computing & Informatics', 'CS.csv')
@@ -89,4 +111,8 @@ if __name__ == '__main__':
 
     answers = prompt(questions)
     query = TMSQuery(answers=answers)
+    print()
     query.get_course()
+
+
+    # print(bolden_blue('Course Name:') + indent('CS 265 - Advanced Programming Tools and Techniques', 5))
