@@ -41,10 +41,27 @@ class TMSQuery():
         self.base_folder = join('DREXEL', answers['quarter'])
 
     def get_professor(self):
-        pass
+        prof = self.answers['Professor']
+        colleges = glob(join(self.base_folder, '*/'))
+        for college in colleges:
+            majors = glob(join(college, '*.csv'))
+            for major in majors:
+                df = pd.read_csv(major)
+                if df['Instructor'].str.contains(prof).any():
+                    found_prof = df[df['Instructor'].str.contains(r'\b' + prof + r'\b', regex=True)]
+                    self.print_results(found_prof)
 
-    def get_credit(self):
-        pass
+    # def get_credit(self):
+    #     cred = self.answers['Credits']
+    #     colleges = glob(join(self.base_folder, '*/'))
+    #     for college in colleges:
+    #         majors = glob(join(college, '*.csv'))
+    #         for major in majors:
+    #             df = pd.read_csv(major)
+    #             df['Credits'] = df['Credits'].astype(str)
+    #             if df['Credits'].str.contains(cred).any():
+    #                 self.print_results(df[df['Credits'] == cred])
+    #                 return
 
     def get_no_prereqs(self):
         pass
@@ -80,6 +97,7 @@ class TMSQuery():
                     return
 
     def print_results(self, df: pd.DataFrame) -> None:
+        if len(df) == 0: return
         initial_course = df.iloc[0].replace({np.nan: 'None'})
         title = indent(
             f"{initial_course['Subject Code']} {initial_course['Course No.']} - {initial_course['Course Title']}", 4)
@@ -97,11 +115,6 @@ class TMSQuery():
 
 
 if __name__ == '__main__':
-    # fall = os.path.join('DREXEL', 'FALL', 'Col of Computing & Informatics', 'CS.csv')
-    # df = pd.read_csv(fall);
-
-    # print(df)
-
     questions = [
         {
             'type': 'list',
@@ -126,6 +139,18 @@ if __name__ == '__main__':
             'name': 'CRN',
             'message': 'Enter Course CRN #',
             'when': lambda answers: answers['find_by'] == 'CRN #'
+        },
+        {
+            'type': 'input',
+            'name': 'Credits',
+            'message': 'Enter # of Credits',
+            'when': lambda answers: answers['find_by'] == 'No. of Credits'
+        },
+        {
+            'type': 'input',
+            'name': 'Professor',
+            'message': 'Enter Professor\'s Name',
+            'when': lambda answers: answers['find_by'] == 'Professor'
         }
     ]
 
@@ -136,5 +161,9 @@ if __name__ == '__main__':
         query.get_course()
     elif 'CRN' in answers:
         query.get_crn()
+    elif 'Credits' in answers:
+        query.get_credit()
+    elif 'Professor' in answers:
+        query.get_professor()
 
     # print(bolden_blue('Course Name:') + indent('CS 265 - Advanced Programming Tools and Techniques', 5))
