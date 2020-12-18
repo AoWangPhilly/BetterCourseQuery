@@ -40,6 +40,7 @@ class TMSQuery():
         self.answers = answers
         self.base_folder = join('DREXEL', answers['quarter'])
 
+    # @TODO maybe format output different by PROF
     def get_professor(self):
         prof = self.answers['Professor']
         colleges = glob(join(self.base_folder, '*/'))
@@ -51,17 +52,17 @@ class TMSQuery():
                     found_prof = df[df['Instructor'].str.contains(r'\b' + prof + r'\b', regex=True)]
                     self.print_results(found_prof)
 
-    # def get_credit(self):
-    #     cred = self.answers['Credits']
-    #     colleges = glob(join(self.base_folder, '*/'))
-    #     for college in colleges:
-    #         majors = glob(join(college, '*.csv'))
-    #         for major in majors:
-    #             df = pd.read_csv(major)
-    #             df['Credits'] = df['Credits'].astype(str)
-    #             if df['Credits'].str.contains(cred).any():
-    #                 self.print_results(df[df['Credits'] == cred])
-    #                 return
+    # @TODO maybe format output different by credits
+    def get_credit(self):
+        cred = self.answers['Credits']
+        colleges = glob(join(self.base_folder, '*/'))
+        for college in colleges:
+            majors = glob(join(college, '*.csv'))
+            for major in majors:
+                df = pd.read_csv(major)
+                df['Credits'] = df['Credits'].astype(str)
+                if df['Credits'].str.contains(cred).any():
+                    self.print_results(df[df['Credits'] == cred])
 
     def get_no_prereqs(self):
         pass
