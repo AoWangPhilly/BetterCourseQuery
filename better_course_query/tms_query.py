@@ -43,18 +43,22 @@ class TMSQuery():
     # @TODO maybe format output different by PROF
     def get_professor(self):
         prof = self.answers['Professor']
+        all_prof_df = pd.DataFrame()
         colleges = glob(join(self.base_folder, '*/'))
         for college in colleges:
             majors = glob(join(college, '*.csv'))
             for major in majors:
                 df = pd.read_csv(major)
                 if df['Instructor'].str.contains(prof).any():
-                    found_prof = df[df['Instructor'].str.contains(r'\b' + prof + r'\b', regex=True)]
-                    self.print_results(found_prof)
+                    found_prof = df[(df['Instructor'].str.contains(r'\b' + prof + r'\b', regex=True)) & (df['No. of Avail. Seats'] != 0)]
+                    if all_prof_df.empty: all_prof_df = found_prof
+                    else: all_prof_df = pd.concat([all_prof_df, found_prof])
+        print(all_prof_df)
 
     # @TODO maybe format output different by credits
     def get_credit(self):
         cred = self.answers['Credits']
+        all_cred_df = pd.DataFrame()
         colleges = glob(join(self.base_folder, '*/'))
         for college in colleges:
             majors = glob(join(college, '*.csv'))
@@ -62,7 +66,10 @@ class TMSQuery():
                 df = pd.read_csv(major)
                 df['Credits'] = df['Credits'].astype(str)
                 if df['Credits'].str.contains(cred).any():
-                    self.print_results(df[df['Credits'] == cred])
+                    found_creds = df[(df['Credits'] == cred) & (df['No. of Avail. Seats'] != 0)]
+                    if all_cred_df.empty: all_cred_df = found_creds
+                    else: all_cred_df = pd.concat([all_cred_df, found_creds])
+        print(all_cred_df)
 
     def get_no_prereqs(self):
         pass
@@ -82,7 +89,7 @@ class TMSQuery():
                     'Subject Code', 'Course No.']].astype(str)
                 if df['Subject Code'].str.contains(sub_code).any() and df['Course No.'].str.contains(course_no).any():
                     self.print_results(
-                        df[(df['Subject Code'] == sub_code) & (df['Course No.'] == course_no)])
+                        df[(df['Subject Code'] == sub_code) & (df['Course No.'] == course_no) & (df['No. of Avail. Seats'] != 0)])
                     return
 
     def get_crn(self):
@@ -94,7 +101,7 @@ class TMSQuery():
                 df = pd.read_csv(major)
                 df['CRN'] = df['CRN'].astype(str)
                 if df['CRN'].str.contains(crn).any():
-                    self.print_results(df[df['CRN'] == crn])
+                    self.print_results(df[(df['CRN'] == crn) & (df['No. of Avail. Seats'] != 0)])
                     return
 
     def print_results(self, df: pd.DataFrame) -> None:
