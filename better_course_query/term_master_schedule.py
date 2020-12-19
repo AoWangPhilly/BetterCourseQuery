@@ -190,7 +190,9 @@ class TMS():
         '''Get dataframe of all the courses in the major
 
         :param major: the subject code, i.e. MATH, CS, PHYS
-
+        :type major: str
+        :returns: a dataframe with all courses for that major
+        :rtype: pd.DataFrame
         '''
 
         # Grab college page
