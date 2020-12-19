@@ -15,6 +15,9 @@ import textwrap
 
 
 class color:
+    '''
+
+    '''
     PURPLE = '\033[95m'
     CYAN = '\033[96m'
     DARKCYAN = '\033[36m'
@@ -28,19 +31,32 @@ class color:
 
 
 def bolden_blue(title: str) -> str:
+    '''
+
+    '''
     return color.BOLD + color.BLUE + color.UNDERLINE + title + color.END
 
 
 def indent(text, amount, ch=' '):
+    '''
+
+
+    '''
     return "\n" + textwrap.indent(text, amount * ch)
 
 
 class TMSQuery():
+    '''
+
+    '''
     def __init__(self, answers):
         self.answers = answers
         self.base_folder = join('DREXEL', answers['quarter'])
 
     def get_professor(self):
+        '''
+
+        '''
         prof = self.answers['Professor']
         all_prof_df = pd.DataFrame()
         colleges = glob(join(self.base_folder, '*/'))
@@ -54,6 +70,9 @@ class TMSQuery():
         print(all_prof_df)
 
     def get_credit(self):
+        '''
+
+        '''
         cred = self.answers['Credits']
         all_cred_df = pd.DataFrame()
         colleges = glob(join(self.base_folder, '*/'))
@@ -68,6 +87,10 @@ class TMSQuery():
         print(all_cred_df)
 
     def get_no_prereqs(self):
+        '''
+
+
+        '''
         all_prereq_df = pd.DataFrame()
         colleges = glob(join(self.base_folder, '*/'))
         for college in colleges:
@@ -80,8 +103,9 @@ class TMSQuery():
         print(all_prereq_df)
 
     def get_course(self) -> None:
-        pd.set_option('display.max_columns', None)
+        '''
 
+        '''
         sub_code, course_no = self.answers['Subject Code & Course No.'].split(
             ' ')
         colleges = glob(join(self.base_folder, '*/'))
@@ -98,6 +122,9 @@ class TMSQuery():
                     return
 
     def get_crn(self):
+        '''
+
+        '''
         crn = self.answers['CRN']
         colleges = glob(join(self.base_folder, '*/'))
         for college in colleges:
@@ -110,6 +137,9 @@ class TMSQuery():
                     return
 
     def print_results(self, df: pd.DataFrame) -> None:
+        '''
+
+        '''
         if len(df) == 0: return
         initial_course = df.iloc[0].replace({np.nan: 'None'})
         title = indent(
@@ -128,6 +158,7 @@ class TMSQuery():
 
 
 if __name__ == '__main__':
+    # 
     questions = [
         {
             'type': 'list',
@@ -167,6 +198,7 @@ if __name__ == '__main__':
         }
     ]
 
+    #
     answers = prompt(questions)
     query = TMSQuery(answers=answers)
     print()
