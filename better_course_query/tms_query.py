@@ -40,7 +40,6 @@ class TMSQuery():
         self.answers = answers
         self.base_folder = join('DREXEL', answers['quarter'])
 
-    # @TODO maybe format output different by PROF
     def get_professor(self):
         prof = self.answers['Professor']
         all_prof_df = pd.DataFrame()
@@ -49,13 +48,11 @@ class TMSQuery():
             majors = glob(join(college, '*.csv'))
             for major in majors:
                 df = pd.read_csv(major)
-                if df['Instructor'].str.contains(prof).any():
-                    found_prof = df[(df['Instructor'].str.contains(r'\b' + prof + r'\b', regex=True)) & (df['No. of Avail. Seats'] != 0)]
-                    if all_prof_df.empty: all_prof_df = found_prof
-                    else: all_prof_df = pd.concat([all_prof_df, found_prof])
+                found_prof = df[(df['Instructor'].str.contains(r'\b' + prof + r'\b', regex=True)) & (df['No. of Avail. Seats'] != 0)]
+                if all_prof_df.empty: all_prof_df = found_prof
+                else: all_prof_df = pd.concat([all_prof_df, found_prof])
         print(all_prof_df)
 
-    # @TODO maybe format output different by credits
     def get_credit(self):
         cred = self.answers['Credits']
         all_cred_df = pd.DataFrame()
@@ -65,14 +62,22 @@ class TMSQuery():
             for major in majors:
                 df = pd.read_csv(major)
                 df['Credits'] = df['Credits'].astype(str)
-                if df['Credits'].str.contains(cred).any():
-                    found_creds = df[(df['Credits'] == cred) & (df['No. of Avail. Seats'] != 0)]
-                    if all_cred_df.empty: all_cred_df = found_creds
-                    else: all_cred_df = pd.concat([all_cred_df, found_creds])
+                found_creds = df[(df['Credits'] == cred) & (df['No. of Avail. Seats'] != 0)]
+                if all_cred_df.empty: all_cred_df = found_creds
+                else: all_cred_df = pd.concat([all_cred_df, found_creds])
         print(all_cred_df)
 
     def get_no_prereqs(self):
-        pass
+        all_prereq_df = pd.DataFrame()
+        colleges = glob(join(self.base_folder, '*/'))
+        for college in colleges:
+            majors = glob(join(college, '*.csv'))
+            for major in majors:
+                df = pd.read_csv(major)
+                found_no_pre = df[(df['Prerequisites'].isna()) & (df['No. of Avail. Seats'] != 0)]
+                if all_prereq_df.empty: all_prereq_df = found_no_pre
+                else: all_prereq_df  = pd.concat([all_prereq_df, found_no_pre])
+        print(all_prereq_df)
 
     def get_course(self) -> None:
         pd.set_option('display.max_columns', None)
@@ -132,7 +137,7 @@ if __name__ == '__main__':
         },
         {
             'type': 'list',
-            'choices': ['Subject Code & Course No.', 'CRN #', 'Professor', 'No. of Credits', 'Prequisites'],
+            'choices': ['Subject Code & Course No.', 'CRN #', 'Professor', 'No. of Credits', 'No Prequisites'],
             'name': 'find_by',
             'message': 'Find course by: '
         },
@@ -173,5 +178,6 @@ if __name__ == '__main__':
         query.get_credit()
     elif 'Professor' in answers:
         query.get_professor()
-
+    elif answers['find_by'] == 'No Prequisites':
+        query.get_no_prereqs()
     # print(bolden_blue('Course Name:') + indent('CS 265 - Advanced Programming Tools and Techniques', 5))
