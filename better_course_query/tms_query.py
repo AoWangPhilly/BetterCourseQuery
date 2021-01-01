@@ -126,10 +126,14 @@ class TMSQuery():
 
             prereqs = prompt({
                 'type': 'confirm',
-                'message': 'Do you want prerequisites? ',
+                'message': 'No prerequisites? ',
                 'name': 'prereqs',
                 'default': False,
             })
+
+            if prereqs['prereqs']:
+                self.query_df = self.__get_no_prereqs(
+                    df=self.query_df, answers=prereqs)
 
         output = prompt({
             'type': 'confirm',
@@ -194,7 +198,8 @@ class TMSQuery():
                 for major in majors:
                     df = pd.read_csv(major)
                     if prof_df.empty:
-                        prof_df = df[df['Instructor'].str.contains(answers['Instructor'])]
+                        prof_df = df[df['Instructor'].str.contains(
+                            answers['Instructor'])]
                     else:
                         prof_df = pd.concat(
                             [prof_df, df[df['Instructor'].str.contains(answers['Instructor'])]])
@@ -203,7 +208,20 @@ class TMSQuery():
         return prof_df
 
     def __get_no_prereqs(self, df, answers):
-        pass
+        no_prereqs = df.copy(deep=True)
+        if no_prereqs.empty:
+            for college in self.colleges:
+                majors = glob(join(college, '*.csv'))
+                for major in majors:
+                    df = pd.read_csv(major)
+                    if no_prereqs.empty:
+                        no_prereqs = df[df['Prerequisites'].isna()]
+                    else:
+                        no_prereqs = pd.concat(
+                            [no_prereqs, df[df['Prerequisites'].isna()]])
+        else:
+            no_prereqs = df[df['Prerequisites'].isna()]
+        return no_prereqs
 
 
 if __name__ == '__main__':
