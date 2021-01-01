@@ -1,7 +1,9 @@
 # !/usr/bin/env python
 '''
-
-
+file: term_query.py
+author: ao wang
+date: 12/29/25
+brief:
 '''
 from __future__ import print_function, unicode_literals
 import pandas as pd
@@ -12,6 +14,8 @@ from pprint import pprint
 from PyInquirer import prompt, print_json
 from tabulate import tabulate
 import textwrap
+from art import tprint
+import shutil
 
 
 class color:
@@ -49,167 +53,82 @@ class TMSQuery():
     '''
 
     '''
-    def __init__(self, answers):
-        self.answers = answers
-        self.base_folder = join('DREXEL', answers['quarter'])
 
-    def get_professor(self):
-        '''
+    def __init__(self):
+        self.query_df = pd.DataFrame()
+        questions = [
+            {
+                'type': 'list',
+                'choices': ['FALL', 'WINTER', 'SPRING', 'SUMMER'],
+                'name': 'quarter',
+                'message': 'Select a quarter:',
+            },
+            {
+                'type': 'input',
+                'name': 'CRN',
+                'message': 'Enter CRN No.: '
+            },
+        ]
+        self.answers = prompt(questions)
+        self.colleges = glob(join('DREXEL', self.answers['quarter'], '*/'))
 
-        '''
-        prof = self.answers['Professor']
-        all_prof_df = pd.DataFrame()
-        colleges = glob(join(self.base_folder, '*/'))
-        for college in colleges:
-            majors = glob(join(college, '*.csv'))
-            for major in majors:
-                df = pd.read_csv(major)
-                found_prof = df[(df['Instructor'].str.contains(r'\b' + prof + r'\b', regex=True)) & (df['No. of Avail. Seats'] != 0)]
-                if all_prof_df.empty: all_prof_df = found_prof
-                else: all_prof_df = pd.concat([all_prof_df, found_prof])
-        print(all_prof_df)
+    def start(self):
+        # A Course Reference Number (CRN) is a unique 5 digit identifier assigned to a class for registration purposes
+        if self.answers['CRN']:
+            self.query_df = self.get_crn()
+        else:
+            courses = [
+                {
+                    'type': 'input',
+                    'name': 'Subject Code',
+                    'message': 'Enter Subject Code: '
+                },
+                {
+                    'type': 'input',
+                    'name': 'Course No.',
+                    'message': 'Enter Course No.: ',
+                    'when': lambda answers: answers['Subject Code'] != ''
+                }
+            ]
+            answers = prompt(courses)
 
-    def get_credit(self):
-        '''
+            if answers['Subject Code']:
+                self.query_df = self.get_course_by_subject(answers['Course No.'])
 
-        '''
-        cred = self.answers['Credits']
-        all_cred_df = pd.DataFrame()
-        colleges = glob(join(self.base_folder, '*/'))
-        for college in colleges:
-            majors = glob(join(college, '*.csv'))
-            for major in majors:
-                df = pd.read_csv(major)
-                df['Credits'] = df['Credits'].astype(str)
-                found_creds = df[(df['Credits'] == cred) & (df['No. of Avail. Seats'] != 0)]
-                if all_cred_df.empty: all_cred_df = found_creds
-                else: all_cred_df = pd.concat([all_cred_df, found_creds])
-        print(all_cred_df)
+        output = prompt({
+            'type': 'confirm',
+            'message': 'Want to save the query? ',
+            'name': 'save',
+            'default': False,
+        })
 
-    def get_no_prereqs(self):
-        '''
-
-
-        '''
-        all_prereq_df = pd.DataFrame()
-        colleges = glob(join(self.base_folder, '*/'))
-        for college in colleges:
-            majors = glob(join(college, '*.csv'))
-            for major in majors:
-                df = pd.read_csv(major)
-                found_no_pre = df[(df['Prerequisites'].isna()) & (df['No. of Avail. Seats'] != 0)]
-                if all_prereq_df.empty: all_prereq_df = found_no_pre
-                else: all_prereq_df  = pd.concat([all_prereq_df, found_no_pre])
-        print(all_prereq_df)
-
-    def get_course(self) -> None:
-        '''
-
-        '''
-        sub_code, course_no = self.answers['Subject Code & Course No.'].split(
-            ' ')
-        colleges = glob(join(self.base_folder, '*/'))
-
-        for college in colleges:
-            majors = glob(join(college, '*.csv'))
-            for major in majors:
-                df = pd.read_csv(major)
-                df[['Subject Code', 'Course No.']] = df[[
-                    'Subject Code', 'Course No.']].astype(str)
-                if df['Subject Code'].str.contains(sub_code).any() and df['Course No.'].str.contains(course_no).any():
-                    self.print_results(
-                        df[(df['Subject Code'] == sub_code) & (df['Course No.'] == course_no) & (df['No. of Avail. Seats'] != 0)])
-                    return
+        if output['save']:
+            self.query_df.to_csv('saved_query.csv')
+            print(bolden_blue('SUCESSFUL! Query saved >:D'))
 
     def get_crn(self):
-        '''
-
-        '''
         crn = self.answers['CRN']
-        colleges = glob(join(self.base_folder, '*/'))
-        for college in colleges:
+        for college in self.colleges:
             majors = glob(join(college, '*.csv'))
             for major in majors:
-                df = pd.read_csv(major)
-                df['CRN'] = df['CRN'].astype(str)
-                if df['CRN'].str.contains(crn).any():
-                    self.print_results(df[(df['CRN'] == crn) & (df['No. of Avail. Seats'] != 0)])
-                    return
-
-    def print_results(self, df: pd.DataFrame) -> None:
-        '''
-
-        '''
-        if len(df) == 0: return
-        initial_course = df.iloc[0].replace({np.nan: 'None'})
-        title = indent(
-            f"{initial_course['Subject Code']} {initial_course['Course No.']} - {initial_course['Course Title']}", 4)
-        desc = indent(textwrap.fill(
-            initial_course['Course Desc.'], width=100), 4)
-        prereq = indent(initial_course['Prerequisites'], 4)
-        restrict = indent(initial_course['Restrictions'], 4)
-        coreq = indent(initial_course['Corequisites'], 4)
-        print(f"{bolden_blue('Course Title:')}{title}\n\n{bolden_blue('Description:')}{desc}\n\n{bolden_blue('Prerequisites:')}{prereq}\n\n{bolden_blue('Restrictions:')}{restrict}\n\n{bolden_blue('Corequisites:')}{coreq}\n")
-
-        desired_cols = ['Instr Type', 'Instr Method', 'Sec', 'CRN', 'Days / Time',
-                        'Instructor', 'Credits', 'No. of Avail. Seats', 'Section Comments']
-        print(tabulate(df[desired_cols], showindex=False,
-                       headers='keys', tablefmt='fancy_grid'))
-
+                crn_df = pd.read_csv(major)
+                df['CRN'] = crn_df['CRN'].astype(str)
+                if crn_df['CRN'].str.contains(crn).any():
+                    return crn_df[(crn_df['CRN'] == crn) & (crn_df['No. of Avail. Seats'] != 0)]
+    
+    def get_course_by_subject(self, course_no=False):
+        subject = self.answers['Subject Code']
+        for college in self.colleges:
+            majors = glob(join(college, '*.csv'))
+            for major in majors:
+                if subject == major:
+                    course_df = pd.read_csv(major)
+                    if course_no: course_df = course_df[course_df['Course No.'] == course_no]
+        return course_df
 
 if __name__ == '__main__':
-    # 
-    questions = [
-        {
-            'type': 'list',
-            'choices': ['FALL', 'WINTER', 'SPRING', 'SUMMER'],
-            'name': 'quarter',
-            'message': 'Select a quarter:',
-        },
-        {
-            'type': 'list',
-            'choices': ['Subject Code & Course No.', 'CRN #', 'Professor', 'No. of Credits', 'No Prequisites'],
-            'name': 'find_by',
-            'message': 'Find course by: '
-        },
-        {
-            'type': 'input',
-            'name': 'Subject Code & Course No.',
-            'message': 'Enter Subject Code & Course No.: i.e. CS 265',
-            'when': lambda answers: answers['find_by'] == 'Subject Code & Course No.'
-        },
-        {
-            'type': 'input',
-            'name': 'CRN',
-            'message': 'Enter Course CRN #',
-            'when': lambda answers: answers['find_by'] == 'CRN #'
-        },
-        {
-            'type': 'input',
-            'name': 'Credits',
-            'message': 'Enter # of Credits',
-            'when': lambda answers: answers['find_by'] == 'No. of Credits'
-        },
-        {
-            'type': 'input',
-            'name': 'Professor',
-            'message': 'Enter Professor\'s Name',
-            'when': lambda answers: answers['find_by'] == 'Professor'
-        }
-    ]
+    tprint('Better Course Query'.center(shutil.get_terminal_size().columns//2))
 
-    #
-    answers = prompt(questions)
-    query = TMSQuery(answers=answers)
+    query = TMSQuery()
     print()
-    if 'Subject Code & Course No.' in answers:
-        query.get_course()
-    elif 'CRN' in answers:
-        query.get_crn()
-    elif 'Credits' in answers:
-        query.get_credit()
-    elif 'Professor' in answers:
-        query.get_professor()
-    elif answers['find_by'] == 'No Prequisites':
-        query.get_no_prereqs()
-    # print(bolden_blue('Course Name:') + indent('CS 265 - Advanced Programming Tools and Techniques', 5))
+    query.start()
