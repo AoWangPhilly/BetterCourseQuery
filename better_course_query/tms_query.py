@@ -75,6 +75,10 @@ class TMSQuery():
         self.colleges = glob(join('DREXEL', self.answers['quarter'], '*/'))
 
     def start(self):
+        '''
+
+
+        '''
         # A Course Reference Number (CRN) is a unique 5 digit identifier assigned to a class for registration purposes
         if self.answers['CRN']:
             self.query_df = self.__get_crn()
@@ -135,6 +139,7 @@ class TMSQuery():
                 self.query_df = self.__get_no_prereqs(
                     df=self.query_df, answers=prereqs)
 
+        self.print_df()
         output = prompt({
             'type': 'confirm',
             'message': 'Want to save the query? ',
@@ -148,7 +153,11 @@ class TMSQuery():
         else:
             print(bolden_blue('UNSUCESSFUL! No results :('))
 
-    def __get_crn(self):
+    def __get_crn(self) -> pd.DataFrame:
+        '''
+
+
+        '''
         crn = self.answers['CRN']
         for college in self.colleges:
             majors = glob(join(college, '*.csv'))
@@ -158,7 +167,11 @@ class TMSQuery():
                 if crn_df['CRN'].str.contains(crn).any():
                     return crn_df[(crn_df['CRN'] == crn) & (crn_df['No. of Avail. Seats'] != 0)]
 
-    def __get_course_by_subject(self, answers):
+    def __get_course_by_subject(self, answers) -> pd.DataFrame:
+        '''
+
+
+        '''
         subject = answers['Subject Code']
         regexp_sub = re.compile(f'\/{subject}.csv')
         course_df = pd.DataFrame()
@@ -172,7 +185,11 @@ class TMSQuery():
                                               == answers['Course No.']]
         return course_df
 
-    def __get_num_of_credits(self, df, answers):
+    def __get_num_of_credits(self, df, answers) -> pd.DataFrame:
+        '''
+
+
+        '''
         credit_df = df.copy(deep=True)
         num_of_credits = answers['Credits']
         if credit_df.empty:
@@ -189,7 +206,11 @@ class TMSQuery():
             credit_df = df[df['Credits'].isin(num_of_credits)]
         return credit_df
 
-    def __get_professor(self, df, answers):
+    def __get_professor(self, df, answers) -> pd.DataFrame:
+        '''
+
+
+        '''
         prof_df = df.copy(deep=True)
         prof_name = answers['Instructor']
         if prof_df.empty:
@@ -207,7 +228,11 @@ class TMSQuery():
             prof_df = df[df['Instructor'].str.contains(answers['Instructor'])]
         return prof_df
 
-    def __get_no_prereqs(self, df, answers):
+    def __get_no_prereqs(self, df, answers) -> pd.DataFrame:
+        '''
+
+
+        '''
         no_prereqs = df.copy(deep=True)
         if no_prereqs.empty:
             for college in self.colleges:
@@ -222,6 +247,21 @@ class TMSQuery():
         else:
             no_prereqs = df[df['Prerequisites'].isna()]
         return no_prereqs
+
+    def print_df(self) -> None:
+        # Print out tables
+        # Number of rows
+        self.query_df.rename(
+            columns={'No. of Avail. Seats': 'No. of Seats'}, inplace=True)
+        self.query_df = self.query_df[self.query_df['No. of Seats'] != 0]
+        self.query_df[['Subject Code', 'Course No.']] = self.query_df[['Subject Code', 'Course No.']].astype(str)
+        self.query_df['Course'] = self.query_df['Subject Code'] + \
+            " " + self.query_df['Course No.']
+        desired_cols = ['Course', 'Instr Type', 'Instr Method',
+                        'Sec', 'CRN', 'Days / Time', 'Instructor', 'Credits', 'No. of Seats']
+        print()
+        print(tabulate(self.query_df[desired_cols], showindex=False,
+                       headers='keys', tablefmt='fancy_grid'))
 
 
 if __name__ == '__main__':
