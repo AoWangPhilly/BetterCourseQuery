@@ -77,7 +77,7 @@ class TMSQuery():
     def start(self):
         # A Course Reference Number (CRN) is a unique 5 digit identifier assigned to a class for registration purposes
         if self.answers['CRN']:
-            self.query_df = self.get_crn()
+            self.query_df = self.__get_crn()
         else:
             courses = [
                 {
@@ -95,8 +95,8 @@ class TMSQuery():
             answers = prompt(courses)
 
             if answers['Subject Code']:
-                self.query_df = self.get_course_by_subject(answers=answers)
-            print(self.query_df)
+                self.query_df = self.__get_course_by_subject(answers=answers)
+
             num_of_credits = {
                 'type': 'checkbox',
                 'name': 'Credits',
@@ -108,19 +108,28 @@ class TMSQuery():
                             {'name': '4.00'}]
             }
             answers = prompt(num_of_credits)
-            
+
             if answers['Credits']:
-                self.query_df = self.get_num_of_credits(df=self.query_df, answers=answers)
-            print(self.query_df)
-            # instructor = {
-            #     'type': 'input',
-            #     'name': 'Instructor',
-            #     'message': 'Enter Instructor\'s Name: '
-            # }
+                self.query_df = self.__get_num_of_credits(
+                    df=self.query_df, answers=answers)
 
-            # answers = prompt(instructor)
+            instructor = {
+                'type': 'input',
+                'name': 'Instructor',
+                'message': 'Enter Instructor\'s Name: '
+            }
+            answers = prompt(instructor)
 
-            print(answers)
+            if answers['Instructor']:
+                self.query_df = self.__get_professor(
+                    df=self.query_df, answers=answers)
+
+            prereqs = prompt({
+                'type': 'confirm',
+                'message': 'Do you want prerequisites? ',
+                'name': 'prereqs',
+                'default': False,
+            })
 
         output = prompt({
             'type': 'confirm',
@@ -135,7 +144,7 @@ class TMSQuery():
         else:
             print(bolden_blue('UNSUCESSFUL! No results :('))
 
-    def get_crn(self):
+    def __get_crn(self):
         crn = self.answers['CRN']
         for college in self.colleges:
             majors = glob(join(college, '*.csv'))
@@ -145,7 +154,7 @@ class TMSQuery():
                 if crn_df['CRN'].str.contains(crn).any():
                     return crn_df[(crn_df['CRN'] == crn) & (crn_df['No. of Avail. Seats'] != 0)]
 
-    def get_course_by_subject(self, answers):
+    def __get_course_by_subject(self, answers):
         subject = answers['Subject Code']
         regexp_sub = re.compile(f'\/{subject}.csv')
         course_df = pd.DataFrame()
@@ -159,7 +168,7 @@ class TMSQuery():
                                               == answers['Course No.']]
         return course_df
 
-    def get_num_of_credits(self, df, answers):
+    def __get_num_of_credits(self, df, answers):
         credit_df = df.copy(deep=True)
         num_of_credits = answers['Credits']
         if credit_df.empty:
@@ -175,6 +184,26 @@ class TMSQuery():
         else:
             credit_df = df[df['Credits'].isin(num_of_credits)]
         return credit_df
+
+    def __get_professor(self, df, answers):
+        prof_df = df.copy(deep=True)
+        prof_name = answers['Instructor']
+        if prof_df.empty:
+            for college in self.colleges:
+                majors = glob(join(college, '*.csv'))
+                for major in majors:
+                    df = pd.read_csv(major)
+                    if prof_df.empty:
+                        prof_df = df[df['Instructor'].str.contains(answers['Instructor'])]
+                    else:
+                        prof_df = pd.concat(
+                            [prof_df, df[df['Instructor'].str.contains(answers['Instructor'])]])
+        else:
+            prof_df = df[df['Instructor'].str.contains(answers['Instructor'])]
+        return prof_df
+
+    def __get_no_prereqs(self, df, answers):
+        pass
 
 
 if __name__ == '__main__':
