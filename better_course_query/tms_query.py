@@ -11,11 +11,12 @@ import numpy as np
 from os.path import join
 from glob import glob
 from pprint import pprint
-from PyInquirer import prompt, print_json
+from PyInquirer import prompt, print_json, Separator
 from tabulate import tabulate
 import textwrap
 from art import tprint
 import shutil
+import re
 
 
 class color:
@@ -66,7 +67,8 @@ class TMSQuery():
             {
                 'type': 'input',
                 'name': 'CRN',
-                'message': 'Enter CRN No.: '
+                'message': 'Enter CRN No.: ',
+                # 'validate': ''
             },
         ]
         self.answers = prompt(questions)
@@ -93,7 +95,32 @@ class TMSQuery():
             answers = prompt(courses)
 
             if answers['Subject Code']:
-                self.query_df = self.get_course_by_subject(answers['Course No.'])
+                self.query_df = self.get_course_by_subject(answers=answers)
+            print(self.query_df)
+            num_of_credits = {
+                'type': 'checkbox',
+                'name': 'Credits',
+                'message': 'Enter No. of Credits: ',
+                'choices': [Separator('---CREDITS---'),
+                            {'name': '1.00'},
+                            {'name': '2.00'},
+                            {'name': '3.00'},
+                            {'name': '4.00'}]
+            }
+            answers = prompt(num_of_credits)
+            
+            if answers['Credits']:
+                self.query_df = self.get_num_of_credits(df=self.query_df, answers=answers)
+            print(self.query_df)
+            # instructor = {
+            #     'type': 'input',
+            #     'name': 'Instructor',
+            #     'message': 'Enter Instructor\'s Name: '
+            # }
+
+            # answers = prompt(instructor)
+
+            print(answers)
 
         output = prompt({
             'type': 'confirm',
@@ -102,9 +129,11 @@ class TMSQuery():
             'default': False,
         })
 
-        if output['save']:
+        if output['save'] and not self.query_df.empty:
             self.query_df.to_csv('saved_query.csv')
             print(bolden_blue('SUCESSFUL! Query saved >:D'))
+        else:
+            print(bolden_blue('UNSUCESSFUL! No results :('))
 
     def get_crn(self):
         crn = self.answers['CRN']
@@ -115,16 +144,38 @@ class TMSQuery():
                 df['CRN'] = crn_df['CRN'].astype(str)
                 if crn_df['CRN'].str.contains(crn).any():
                     return crn_df[(crn_df['CRN'] == crn) & (crn_df['No. of Avail. Seats'] != 0)]
-    
-    def get_course_by_subject(self, course_no=False):
-        subject = self.answers['Subject Code']
+
+    def get_course_by_subject(self, answers):
+        subject = answers['Subject Code']
+        regexp_sub = re.compile(f'\/{subject}.csv')
+        course_df = pd.DataFrame()
         for college in self.colleges:
             majors = glob(join(college, '*.csv'))
             for major in majors:
-                if subject == major:
+                if regexp_sub.search(major):
                     course_df = pd.read_csv(major)
-                    if course_no: course_df = course_df[course_df['Course No.'] == course_no]
+                    if answers['Course No.']:
+                        course_df = course_df[course_df['Course No.']
+                                              == answers['Course No.']]
         return course_df
+
+    def get_num_of_credits(self, df, answers):
+        credit_df = df.copy(deep=True)
+        num_of_credits = answers['Credits']
+        if credit_df.empty:
+            for college in self.colleges:
+                majors = glob(join(college, '*.csv'))
+                for major in majors:
+                    df = pd.read_csv(major)
+                    if credit_df.empty:
+                        credit_df = df[df['Credits'].isin(num_of_credits)]
+                    else:
+                        credit_df = pd.concat(
+                            [credit_df, df[df['Credits'].isin(num_of_credits)]])
+        else:
+            credit_df = df[df['Credits'].isin(num_of_credits)]
+        return credit_df
+
 
 if __name__ == '__main__':
     tprint('Better Course Query'.center(shutil.get_terminal_size().columns//2))
