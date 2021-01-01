@@ -15,7 +15,6 @@ import pprint
 import os
 import multiprocessing
 from bs4 import BeautifulSoup
-from typing import Dict, List
 from pathlib import Path
 
 
@@ -65,7 +64,7 @@ class TMS():
         # Always defaults for Antoinette Westphal COMAD
         return TMS.URL + soup.find('a', href=True, text=f'{self.get_quarter()} Quarter 20-21')['href']
 
-    def get_available_college(self) -> List[str]:
+    def get_available_college(self) -> list[str]:
         '''Gets the list of available colleges for specific quarter
 
         :returns: a list of college names
@@ -95,7 +94,7 @@ class TMS():
 
         return TMS.URL + college_page_url
 
-    def get_majors(self) -> List[str]:
+    def get_majors(self) -> list[str]:
         '''Gets a list of all the majors in a speific college
 
         :return: a list of majors in a college
@@ -114,7 +113,7 @@ class TMS():
             '(') + 1: (len(major) - 1)].strip() for major in regex_group]
         return regex_group
 
-    def create_major_to_college_map(self) -> Dict[str, List[str]]:
+    def create_major_to_college_map(self) -> dict[str, list[str]]:
         '''Generate a mapping to assign college name to list of majors
 
         :return: a dictionary with college key to major list value
