@@ -1,6 +1,8 @@
 # BetterClassQuery
 An application that helps you find the courses you're looking for! Need a 1-credit class to add up to that perfect 20-credit max? Or need that easy no-prereq class to fill up your gened's. No worries, the BetterClassQuery is there to help!
 
+# Demo
+![demo](better_course_query/images/demo.png)
 ## MVP:
 Webscrape: 
 * Get all courses from specific quarter
