@@ -170,11 +170,11 @@ class TMSQuery():
                     return crn_df[(crn_df['CRN'] == crn) & (crn_df['No. of Avail. Seats'] != 0)]
 
     def __get_course_by_subject(self, answers) -> pd.DataFrame:
-        '''Searches file for courses by subject code and optionally course number
+        '''Searches file for courses by subject code, optionally course number too
 
-        :param answers:
-        :type answers:
-        :returns: 
+        :param answers: the question for finding course by subject code and course number
+        :type answers: dict[str, str]
+        :returns: the dataframe that matches subject code and course number
         :rtype: pd.DataFrame
         '''
         subject = answers['Subject Code']
@@ -191,14 +191,14 @@ class TMSQuery():
         return course_df
 
     def __get_num_of_credits(self, df, answers) -> pd.DataFrame:
-        '''
+        '''Searches courses that have certain amount of credits
 
-        :param df:
-        :type df:
-        :param answers:
-        :type answers:
-        :returns:
-        :rtype:
+        :param df: the class' query_df
+        :type df: pd.DataFrame
+        :param answers: a checkbox of credits 1-4
+        :type answers: dict[str, str]
+        :returns: the dataframe with range of chosen credits
+        :rtype: pd.DataFrame
         '''
         credit_df = df.copy(deep=True)
         num_of_credits = answers['Credits']
@@ -217,15 +217,14 @@ class TMSQuery():
         return credit_df
 
     def __get_professor(self, df, answers) -> pd.DataFrame:
-        '''
+        '''Searches courses by professor's name
 
-
-        :param df:
-        :type df:
-        :param answers:
-        :type answers:
-        :returns:
-        :rtype:
+        :param df: the class' query_df
+        :type df: pd.DataFrame
+        :param answers: the professor's name
+        :type answers: dict[str, str]
+        :returns: the dataframe with chosen professors
+        :rtype: pd.DataFrame
         '''
         prof_df = df.copy(deep=True)
         prof_name = answers['Instructor']
@@ -245,15 +244,14 @@ class TMSQuery():
         return prof_df
 
     def __get_no_prereqs(self, df, answers) -> pd.DataFrame:
-        '''
+        '''Search for courses that don't have prerequisites
 
-
-        :param df:
-        :type df:
-        :param answers:
-        :type answers:
-        :returns:
-        :rtype:
+        :param df: the class' query_df
+        :type df: pd.DataFrame
+        :param answers: answers if user wants no prereqs
+        :type answers: dict[str, str]
+        :returns: the dataframe with no prereqs
+        :rtype: pd.Datarame
         '''
         no_prereqs = df.copy(deep=True)
         if no_prereqs.empty:
@@ -271,11 +269,7 @@ class TMSQuery():
         return no_prereqs
 
     def print_df(self) -> None:
-        '''
-
-        '''
-        # Print out tables
-        # Number of rows
+        '''Prints out the output dataframe'''
         self.query_df.rename(
             columns={'No. of Avail. Seats': 'No. of Seats'}, inplace=True)
         self.query_df = self.query_df[self.query_df['No. of Seats'] != 0]
@@ -290,6 +284,11 @@ class TMSQuery():
                        headers='keys', tablefmt='fancy_grid'))
 
     def get_course_info(self, answers) -> None:
+        '''Describes more of specific course
+
+        :param answers:
+        :type answers: dict[str, str]
+        '''
         def indent_text(text, amount): return '\n' + indent(text, amount * ' ')
         if self.query_df.empty:
             cprint('UNSUCESSFUL! Empty dataframe :(',
@@ -305,25 +304,32 @@ class TMSQuery():
             cprint('SUCESSFUL! Found course! >:D', 'green',
                    attrs=['bold'], file=sys.stderr)
 
-            course_title = colored('Course Title:', 'blue', attrs=['bold', 'underline'])
+            course_title = colored('Course Title:', 'blue', attrs=[
+                                   'bold', 'underline'])
             course = indent_text(
                 f"{has_course['Course']} - {has_course['Course Title']}", 4)
 
-            desc_title = colored('Description:', 'blue', attrs=['bold', 'underline'])
+            desc_title = colored('Description:', 'blue',
+                                 attrs=['bold', 'underline'])
             desc = indent_text(
                 f"{textwrap.fill(has_course['Course Desc.'], width=100)}", 4)
 
-            prereq_title = colored('Prerequisites:', 'blue', attrs=['bold', 'underline'])
+            prereq_title = colored('Prerequisites:', 'blue', attrs=[
+                                   'bold', 'underline'])
             prereq = indent_text(f"{has_course['Prerequisites']}", 4)
 
-            restrict_title = colored('Restrictions:', 'blue', attrs=['bold', 'underline'])
+            restrict_title = colored('Restrictions:', 'blue', attrs=[
+                                     'bold', 'underline'])
             restrict = indent_text(f"{has_course['Restrictions']}", 4)
 
-            coreq_title = colored('Corequisites:', 'blue', attrs=['bold', 'underline'])
+            coreq_title = colored('Corequisites:', 'blue',
+                                  attrs=['bold', 'underline'])
             coreq = indent_text(f"{has_course['Corequisites']}", 4)
 
-            section_comm_title = colored('Comments:', 'blue', attrs=['bold', 'underline'])
-            section_comments = indent_text(f"{has_course['Section Comments']}", 4)
+            section_comm_title = colored(
+                'Comments:', 'blue', attrs=['bold', 'underline'])
+            section_comments = indent_text(
+                f"{has_course['Section Comments']}", 4)
 
             print(f'{course_title}{course}\n')
             print(f'{desc_title}{desc}\n')
