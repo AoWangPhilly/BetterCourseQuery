@@ -3,56 +3,33 @@
 file: term_query.py
 author: ao wang
 date: 12/29/25
-brief:
+brief: Helps students find courses they want by: subject, course number, # of credits, prereqs, or professor
 '''
 from __future__ import print_function, unicode_literals
 import pandas as pd
 import numpy as np
-from os.path import join
-from glob import glob
-from pprint import pprint
-from PyInquirer import prompt, print_json, Separator
-from tabulate import tabulate
-import textwrap
-from art import tprint
 import shutil
 import re
-
-
-class color:
-    '''
-
-    '''
-    PURPLE = '\033[95m'
-    CYAN = '\033[96m'
-    DARKCYAN = '\033[36m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    END = '\033[0m'
-
-
-def bolden_blue(title: str) -> str:
-    '''
-
-    '''
-    return color.BOLD + color.BLUE + color.UNDERLINE + title + color.END
-
-
-def indent(text, amount, ch=' '):
-    '''
-
-
-    '''
-    return "\n" + textwrap.indent(text, amount * ch)
+from os.path import join
+from glob import glob
+from PyInquirer import prompt, print_json, Separator
+from tabulate import tabulate
+from textwrap import indent
+from art import tprint
+import sys
+import textwrap
+from termcolor import colored, cprint
 
 
 class TMSQuery():
-    '''
+    '''The TMSQuery class helps students find the classes they need better than the TMS search site
 
+    :param query_df: the output dataframe from the search
+    :type query_df: pd.DataFrame
+    :param answers: answers for which quarter and crn number the course has
+    :type answers: dictionary of questions and answers
+    :param colleges: list of all the college directories
+    :type colleges: list of str
     '''
 
     def __init__(self):
@@ -74,10 +51,13 @@ class TMSQuery():
         self.answers = prompt(questions)
         self.colleges = glob(join('DREXEL', self.answers['quarter'], '*/'))
 
-    def start(self):
-        '''
-
-
+    def start(self) -> None:
+        '''Begins the query for the user, searches for CRN (unique course id), if there isn't one
+        then ask for subject, then course number. Then filter by number of credits, instructor, and 
+        if the course has no prerequisites. After the query, there will be a table output; the user can 
+        also learn more about a course by selecting its CRN number, providing additional info, like prereqs,
+        course name, description, etc. In the end, the user will also have the chance to save the query,
+        as a CSV file.
         '''
         # A Course Reference Number (CRN) is a unique 5 digit identifier assigned to a class for registration purposes
         if self.answers['CRN']:
@@ -138,8 +118,27 @@ class TMSQuery():
             if prereqs['prereqs']:
                 self.query_df = self.__get_no_prereqs(
                     df=self.query_df, answers=prereqs)
-
         self.print_df()
+
+        course_info = [
+            {
+                'type': 'confirm',
+                'message': 'Learn about a course? ',
+                'name': 'course?',
+                'default': False,
+            },
+            {
+                'type': 'input',
+                'message': 'Enter CRN No.: ',
+                'name': 'CRN',
+                'when': lambda course_info: course_info['course?'] == True
+            },
+        ]
+
+        answers = prompt(course_info)
+        if answers['course?']:
+            self.get_course_info(answers)
+
         output = prompt({
             'type': 'confirm',
             'message': 'Want to save the query? ',
@@ -149,14 +148,17 @@ class TMSQuery():
 
         if output['save'] and not self.query_df.empty:
             self.query_df.to_csv('saved_query.csv')
-            print(bolden_blue('SUCESSFUL! Query saved >:D'))
+            cprint('SUCESSFUL! Query saved >:D', 'green',
+                   attrs=['bold'], file=sys.stdout)
         else:
-            print(bolden_blue('UNSUCESSFUL! No results :('))
+            cprint('UNSUCESSFUL! No results :(', 'red',
+                   attrs=['bold'], file=sys.stderr)
 
     def __get_crn(self) -> pd.DataFrame:
-        '''
+        '''Searches files for courses' CRN number
 
-
+        :returns: a row of the course with the CRN number
+        :rtype: pd.DataFrame
         '''
         crn = self.answers['CRN']
         for college in self.colleges:
@@ -168,9 +170,12 @@ class TMSQuery():
                     return crn_df[(crn_df['CRN'] == crn) & (crn_df['No. of Avail. Seats'] != 0)]
 
     def __get_course_by_subject(self, answers) -> pd.DataFrame:
-        '''
+        '''Searches file for courses by subject code and optionally course number
 
-
+        :param answers:
+        :type answers:
+        :returns: 
+        :rtype: pd.DataFrame
         '''
         subject = answers['Subject Code']
         regexp_sub = re.compile(f'\/{subject}.csv')
@@ -188,7 +193,12 @@ class TMSQuery():
     def __get_num_of_credits(self, df, answers) -> pd.DataFrame:
         '''
 
-
+        :param df:
+        :type df:
+        :param answers:
+        :type answers:
+        :returns:
+        :rtype:
         '''
         credit_df = df.copy(deep=True)
         num_of_credits = answers['Credits']
@@ -210,6 +220,12 @@ class TMSQuery():
         '''
 
 
+        :param df:
+        :type df:
+        :param answers:
+        :type answers:
+        :returns:
+        :rtype:
         '''
         prof_df = df.copy(deep=True)
         prof_name = answers['Instructor']
@@ -232,6 +248,12 @@ class TMSQuery():
         '''
 
 
+        :param df:
+        :type df:
+        :param answers:
+        :type answers:
+        :returns:
+        :rtype:
         '''
         no_prereqs = df.copy(deep=True)
         if no_prereqs.empty:
@@ -249,12 +271,16 @@ class TMSQuery():
         return no_prereqs
 
     def print_df(self) -> None:
+        '''
+
+        '''
         # Print out tables
         # Number of rows
         self.query_df.rename(
             columns={'No. of Avail. Seats': 'No. of Seats'}, inplace=True)
         self.query_df = self.query_df[self.query_df['No. of Seats'] != 0]
-        self.query_df[['Subject Code', 'Course No.']] = self.query_df[['Subject Code', 'Course No.']].astype(str)
+        self.query_df[['Subject Code', 'Course No.']] = self.query_df[[
+            'Subject Code', 'Course No.']].astype(str)
         self.query_df['Course'] = self.query_df['Subject Code'] + \
             " " + self.query_df['Course No.']
         desired_cols = ['Course', 'Instr Type', 'Instr Method',
@@ -263,10 +289,52 @@ class TMSQuery():
         print(tabulate(self.query_df[desired_cols], showindex=False,
                        headers='keys', tablefmt='fancy_grid'))
 
+    def get_course_info(self, answers) -> None:
+        def indent_text(text, amount): return '\n' + indent(text, amount * ' ')
+        if self.query_df.empty:
+            cprint('UNSUCESSFUL! Empty dataframe :(',
+                   'red', attrs=['bold'], file=sys.stderr)
+
+        self.query_df['CRN'] = self.query_df['CRN'].astype(str)
+        has_course = self.query_df[self.query_df['CRN'] ==
+                                   answers['CRN']].iloc[0].replace({np.nan: 'None'})
+        if has_course.empty:
+            cprint('UNSUCESSFUL! No matching for CRN :(',
+                   'red', attrs=['bold'], file=sys.stderr)
+        else:
+            cprint('SUCESSFUL! Found course! >:D', 'green',
+                   attrs=['bold'], file=sys.stderr)
+
+            course_title = colored('Course Title:', 'blue', attrs=['bold', 'underline'])
+            course = indent_text(
+                f"{has_course['Course']} - {has_course['Course Title']}", 4)
+
+            desc_title = colored('Description:', 'blue', attrs=['bold', 'underline'])
+            desc = indent_text(
+                f"{textwrap.fill(has_course['Course Desc.'], width=100)}", 4)
+
+            prereq_title = colored('Prerequisites:', 'blue', attrs=['bold', 'underline'])
+            prereq = indent_text(f"{has_course['Prerequisites']}", 4)
+
+            restrict_title = colored('Restrictions:', 'blue', attrs=['bold', 'underline'])
+            restrict = indent_text(f"{has_course['Restrictions']}", 4)
+
+            coreq_title = colored('Corequisites:', 'blue', attrs=['bold', 'underline'])
+            coreq = indent_text(f"{has_course['Corequisites']}", 4)
+
+            section_comm_title = colored('Comments:', 'blue', attrs=['bold', 'underline'])
+            section_comments = indent_text(f"{has_course['Section Comments']}", 4)
+
+            print(f'{course_title}{course}\n')
+            print(f'{desc_title}{desc}\n')
+            print(f'{prereq_title}{prereq}\n')
+            print(f'{restrict_title}{restrict}\n')
+            print(f'{coreq_title}{coreq}\n')
+            print(f'{section_comm_title}{section_comments}\n')
+
 
 if __name__ == '__main__':
     tprint('Better Course Query'.center(shutil.get_terminal_size().columns//2))
-
     query = TMSQuery()
     print()
     query.start()
